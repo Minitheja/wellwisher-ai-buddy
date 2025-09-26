@@ -29,9 +29,16 @@ const ChatAssistant = () => {
       mood: "supportive",
     },
   ]);
-
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+
+  const quickPrompts = [
+    t("chat.prompt.anxious"),
+    t("chat.prompt.great"),
+    t("chat.prompt.sleep"),
+    t("chat.prompt.motivation"),
+    t("chat.prompt.overwhelmed"),
+  ];
 
   const getMoodIcon = (mood?: string) => {
     switch (mood) {
@@ -59,16 +66,14 @@ const ChatAssistant = () => {
     }
   };
 
-  const generateResponse = async (
-    userMessage: string
-  ): Promise<{ content: string; mood: "supportive" | "encouraging" | "calming" }> => {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    const result = await model.generateContent(userMessage);
-    const aiText = result.response.text();
-
-    // For now, always mark Gemini responses as "supportive"
-    return { content: aiText, mood: "supportive" };
+  // ✅ regex cleaner to remove markdown
+  const cleanText = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, "$1") // bold
+      .replace(/\*(.*?)\*/g, "$1") // italics
+      .replace(/[_`#>-]/g, "") // markdown chars
+      .replace(/\[(.*?)\]\(.*?\)/g, "$1") // links
+      .trim();
   };
 
   const handleSendMessage = async () => {
@@ -86,39 +91,38 @@ const ChatAssistant = () => {
     setIsTyping(true);
 
     try {
-      const { content, mood } = await generateResponse(userMessage.content);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const prompt = `Reply like a caring, supportive friend in 1-2 short sentences. 
+Keep it natural, human-like, and avoid markdown or formatting. User said: ${inputMessage}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response.text();
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content,
+        content: cleanText(response),
         isUser: false,
         timestamp: new Date(),
-        mood,
+        mood: "supportive", // you can randomize mood if you want
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Gemini error:", error);
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "Oops! Something went wrong. Please try again.",
-        isUser: false,
-        timestamp: new Date(),
-        mood: "supportive",
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+      console.error("Gemini API Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          content: "Oops! Something went wrong. Please try again.",
+          isUser: false,
+          timestamp: new Date(),
+          mood: "supportive",
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
   };
-
-  const quickPrompts = [
-    t("chat.prompt.anxious"),
-    t("chat.prompt.great"),
-    t("chat.prompt.sleep"),
-    t("chat.prompt.motivation"),
-    t("chat.prompt.overwhelmed"),
-  ];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -127,55 +131,25 @@ const ChatAssistant = () => {
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-6 w-6" />
             {t("chat.title")}
-            <Badge
-              variant="secondary"
-              className="ml-auto bg-white/20 text-white border-white/30"
-            >
-              {t("chat.powered")}
+            <Badge variant="secondary" className="ml-auto bg-white/20 text-white border-white/30">
+              Gemini
             </Badge>
           </CardTitle>
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col p-0">
-          {/* Chat Messages */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.isUser ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`flex gap-2 max-w-[80%] ${
-                      message.isUser ? "flex-row-reverse" : ""
-                    }`}
-                  >
-                    <div
-                      className={`p-2 rounded-full ${
-                        message.isUser ? "bg-primary" : getMoodColor(message.mood)
-                      }`}
-                    >
-                      {message.isUser ? (
-                        <User className="h-4 w-4 text-white" />
-                      ) : (
-                        getMoodIcon(message.mood)
-                      )}
+                <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
+                  <div className={`flex gap-2 max-w-[80%] ${message.isUser ? "flex-row-reverse" : ""}`}>
+                    <div className={`p-2 rounded-full ${message.isUser ? "bg-primary" : getMoodColor(message.mood)}`}>
+                      {message.isUser ? <User className="h-4 w-4 text-white" /> : getMoodIcon(message.mood)}
                     </div>
-                    <div
-                      className={`p-3 rounded-lg ${
-                        message.isUser
-                          ? "bg-primary text-primary-foreground ml-2"
-                          : "bg-muted mr-2"
-                      }`}
-                    >
+                    <div className={`p-3 rounded-lg ${message.isUser ? "bg-primary text-primary-foreground ml-2" : "bg-muted mr-2"}`}>
                       <p className="text-sm">{message.content}</p>
                       <p className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
                   </div>
@@ -191,14 +165,8 @@ const ChatAssistant = () => {
                     <div className="p-3 rounded-lg bg-muted mr-2">
                       <div className="flex gap-1">
                         <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                        <div
-                          className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                          style={{ animationDelay: "0.1s" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        ></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                       </div>
                     </div>
                   </div>
@@ -209,18 +177,10 @@ const ChatAssistant = () => {
 
           {/* Quick Prompts */}
           <div className="p-4 border-t bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">
-              {t("chat.quick_prompts")}
-            </p>
+            <p className="text-sm text-muted-foreground mb-2">{t("chat.quick_prompts")}</p>
             <div className="flex gap-2 flex-wrap">
               {quickPrompts.map((prompt, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInputMessage(prompt)}
-                  className="text-xs"
-                >
+                <Button key={index} variant="outline" size="sm" onClick={() => setInputMessage(prompt)} className="text-xs">
                   {prompt}
                 </Button>
               ))}
@@ -234,14 +194,10 @@ const ChatAssistant = () => {
                 placeholder={t("chat.placeholder")}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 className="flex-1"
               />
-              <Button
-                onClick={handleSendMessage}
-                size="icon"
-                disabled={!inputMessage.trim()}
-              >
+              <Button onClick={handleSendMessage} size="icon" disabled={!inputMessage.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
@@ -253,3 +209,4 @@ const ChatAssistant = () => {
 };
 
 export default ChatAssistant;
+
