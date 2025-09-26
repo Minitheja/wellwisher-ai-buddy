@@ -1,7 +1,17 @@
+
+    
+
+
+
+"use client";
+
 import { useState } from "react";
+
+import { Link } from "react-router-dom";
+
+//import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   MessageCircle, 
@@ -81,7 +91,9 @@ const WellnessDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-2xl mb-2">Welcome back, Alex!</CardTitle>
-                    <p className="text-primary-foreground/90">How are you feeling today? Let's check in with your mental wellness.</p>
+                    <p className="text-primary-foreground/90">
+                      How are you feeling today? Let's check in with your mental wellness.
+                    </p>
                   </div>
                   <Brain className="h-12 w-12 text-primary-foreground/80" />
                 </div>
@@ -170,13 +182,19 @@ const WellnessDashboard = () => {
                     <MessageCircle className="h-5 w-5 text-primary" />
                     <span className="text-sm">Chat with AI</span>
                   </Button>
+
+                  {/* Meditation Button (links to med.tsx) */}
                   <Button 
+                    asChild
                     variant="outline" 
                     className="h-auto p-4 flex flex-col gap-2"
                   >
-                    <Sun className="h-5 w-5 text-wellness-joy" />
-                    <span className="text-sm">Meditation</span>
+                    <Link to="/med">
+                      <Sun className="h-5 w-5 text-wellness-joy" />
+                      <span className="text-sm">Meditation</span>
+                    </Link>
                   </Button>
+
                   <Button 
                     variant="outline" 
                     className="h-auto p-4 flex flex-col gap-2"
@@ -202,17 +220,17 @@ const WellnessDashboard = () => {
             <div className="flex items-center gap-2">
               <Brain className="h-8 w-8 text-primary" />
               <h1 className="text-xl font-bold bg-gradient-wellness bg-clip-text text-transparent">
-                {t('app.title')}
+                {t("app.title")}
               </h1>
             </div>
             
             <nav className="flex gap-1">
               {[
-                { id: "dashboard", label: t('dashboard.title'), icon: Activity },
-                { id: "chat", label: t('chat.title'), icon: MessageCircle },
-                { id: "mood", label: t('mood.title'), icon: Heart },
-                { id: "reminders", label: t('reminders.title'), icon: Calendar },
-                { id: "emergency", label: t('emergency.title'), icon: AlertTriangle }
+                { id: "dashboard", label: t("dashboard.title"), icon: Activity },
+                { id: "chat", label: t("chat.title"), icon: MessageCircle },
+                { id: "mood", label: t("mood.title"), icon: Heart },
+                { id: "reminders", label: t("reminders.title"), icon: Calendar },
+                { id: "emergency", label: t("emergency.title"), icon: AlertTriangle }
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 return (

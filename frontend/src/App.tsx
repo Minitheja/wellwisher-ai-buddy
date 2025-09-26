@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import MedPage from "./pages/MedPage"; // ✅ Import your MedPage
+import Books from "./pages/Book";
 
 const queryClient = new QueryClient();
 
@@ -17,10 +19,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+  <Route path="/" element={<Index />} />
+  <Route path="/med" element={<MedPage />} />  {/* Add this */}
+  <Route path="/books" element={<Books />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
         </BrowserRouter>
       </TooltipProvider>
     </LanguageProvider>
